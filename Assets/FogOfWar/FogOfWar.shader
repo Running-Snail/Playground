@@ -1,62 +1,76 @@
-﻿Shader "Custom/FogOfWar" {
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+Shader "Custom/FogOfWar"
+{
 	Properties {
-		_Color ("Color", Color) = (1,1,1,1)
-		_MainTex ("Albedo (RGB)", 2D) = "white" {}
-		_FogRadius ("Fog Radius", Float) = 4.0
+		_MainTex ("Texture", 2D) = "white" {}
+		_TintColor ("Tint Color", Color) = (1,1,1,1)
+		_Radius ("Radius", Float) = 1.0
 		_Center1 ("Center1", Vector) = (0,0,0,1)
+		_Thredhold ("Thredhold", Range(0.0, 1.0)) = 0.95
+		_Alpha ("Alpha", Range(0.0, 1.0)) = 0.0
 	}
 	SubShader {
-		Tags { "RenderType"="Opaque" }
+		Tags {
+			"RenderType" = "Transparent"
+			"Queue" = "Transparent"
+			"IgnoreProjector" = "True"
+		}
 		Cull Off
+		ZWrite Off
 		Blend SrcAlpha OneMinusSrcAlpha
-		LOD 200
-		
-		CGPROGRAM
-		#pragma vertex vert
-		#pragma fragment frag
+		LOD 100
 
-		#include "UnityCG.cginc";
+		Pass {
+			CGPROGRAM
 
-		sampler2D _MainTex;
-		fixed4 _Color;
-		float _FogRadius;
-		float4 _Center1;
+			#pragma vertex vert
+			#pragma fragment frag
 
-		struct appdata
-		{
-			float4 vertex : POSITION;
-			float2 uv : TEXCOORD0;
-		};
+			#include "UnityCG.cginc"
 
-		struct v2f
-		{
-			float2 uv : TEXCOORD0;
-			float4 vertex : SV_POSITION;
-		};
+			struct appdata {
+				float4 vertex : POSITION;
+				float2 uv : TEXCOORD0;
+			};
 
-		sampler2D _MainTex;
-		float4 _MainTex_ST;
-		
-		v2f vert (appdata v)
-		{
-			v2f o;
-			o.vertex = UnityObjectToClipPos(v.vertex);
-			o.uv = v.uv;
-			return o;
+			struct v2f {
+				float2 uv : TEXCOORD0;
+				float4 vertex : SV_POSITION;
+				float3 wpos : TEXCOORD1;
+			};
+
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			float4 _TintColor;
+			float _Radius;
+			float4 _Center1;
+			float _Thredhold;
+			float _Alpha;
+
+			float transition(float x) {
+				if (x < _Thredhold) return _Alpha;
+				else return (_Alpha - 1.0)*x/(_Thredhold - 1.0) + (_Thredhold - _Alpha)/(_Thredhold - 1.0);
+			}
+
+			v2f vert(appdata v) {
+				v2f o;
+				o.vertex = UnityObjectToClipPos(v.vertex);
+				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+				o.wpos = mul(unity_ObjectToWorld, v.vertex);
+				return o;
+			}
+
+			fixed4 frag(v2f i) : SV_Target {
+				// sample the texture
+				fixed4 col = tex2D(_MainTex, i.uv);
+				float dis = length(i.wpos.xy - _Center1.xy);
+				col.rgb *= _TintColor.rgb;
+				col.a *= _TintColor.a;
+				col.a *= transition(dis/_Radius);
+				return col;
+			}
+			ENDCG
 		}
-		
-		fixed4 frag (v2f i) : SV_Target
-		{
-			// sample the texture
-			fixed4 col = tex2D(_MainTex, i.uv);
-			return col;
-		}
-
-		float transition(float x) {
-			if (x < 0.95) return 0;
-			else return x-0.95;
-		}
-		ENDCG
 	}
-	FallBack "Diffuse"
 }
