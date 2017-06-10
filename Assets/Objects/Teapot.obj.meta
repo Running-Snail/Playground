@@ -1,52 +1,17 @@
 fileFormatVersion: 2
-guid: e7650a3360db3a441aed05e7196a4ed2
-timeCreated: 1496928273
+guid: 5205cee9f1c374e20b554f424b1bf808
+timeCreated: 1496938829
 licenseType: Free
 ModelImporter:
   serializedVersion: 19
   fileIDToRecycleName:
-    100000: Archmodels57_052_00
-    100002: Archmodels57_052_01
-    100004: Archmodels57_052_02
-    100006: Archmodels57_052_03
-    100008: Archmodels57_052_04
-    100010: Archmodels57_052_05
-    100012: Archmodels57_052_06
-    100014: //RootNode
-    100016: default
-    400000: Archmodels57_052_00
-    400002: Archmodels57_052_01
-    400004: Archmodels57_052_02
-    400006: Archmodels57_052_03
-    400008: Archmodels57_052_04
-    400010: Archmodels57_052_05
-    400012: Archmodels57_052_06
-    400014: //RootNode
-    400016: default
-    2300000: Archmodels57_052_00
-    2300002: Archmodels57_052_01
-    2300004: Archmodels57_052_02
-    2300006: Archmodels57_052_03
-    2300008: Archmodels57_052_04
-    2300010: Archmodels57_052_05
-    2300012: Archmodels57_052_06
-    2300014: default
-    3300000: Archmodels57_052_00
-    3300002: Archmodels57_052_01
-    3300004: Archmodels57_052_02
-    3300006: Archmodels57_052_03
-    3300008: Archmodels57_052_04
-    3300010: Archmodels57_052_05
-    3300012: Archmodels57_052_06
-    3300014: default
-    4300000: Archmodels57_052_00
-    4300002: Archmodels57_052_01
-    4300004: Archmodels57_052_02
-    4300006: Archmodels57_052_03
-    4300008: Archmodels57_052_04
-    4300010: Archmodels57_052_05
-    4300012: Archmodels57_052_06
-    4300014: default
+    100000: default
+    100002: //RootNode
+    400000: default
+    400002: //RootNode
+    2300000: default
+    3300000: default
+    4300000: default
   materials:
     importMaterials: 1
     materialName: 0
