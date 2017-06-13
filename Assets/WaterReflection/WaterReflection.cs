@@ -25,7 +25,7 @@ public class WaterReflection : MonoBehaviour {
 	void Update () {
 		if (water != null && camera != null) {
 			scroll += speed * Time.deltaTime;
-			water.material.SetTextureOffset ("_NoiseTex", scroll);
+			// water.material.SetTextureOffset ("_NoiseTex", scroll);
 			water.material.SetTexture ("_ReflectionTex", offscreenTexture);
 		}
 	}

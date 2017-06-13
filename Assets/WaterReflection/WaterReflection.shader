@@ -6,8 +6,7 @@
 		_NoiseTex ("Noise Texture", 2D) = "bump" {}
 		_ReflectionTex ("Reflection Texture", 2D) = "white" {}
 		_Magnitude ("Magnitude", Range(0, 1)) = 0.02
-		_Speed ("Speed", Range(0, 20)) = 5
-		_Scroll ("Scroll", Float) = 0
+		_Speed ("Speed", Range(0, 10)) = 0.15
 	}
 	SubShader
 	{
@@ -48,7 +47,6 @@
 			float4 _TintColor;
 			float _Magnitude;
 			float _Speed;
-			float _Scroll;
 			
 			v2f vert (appdata v)
 			{
@@ -63,7 +61,7 @@
 			{
 				// perspective correction
 				// i.uvnoise += fixed2(2.0f * (0.5 - i.uvnoise.x) * i.uvnoise.y, 0.0f);
-				fixed4 noise = tex2D(_NoiseTex, i.uvnoise);
+				fixed4 noise = tex2D(_NoiseTex, i.uvnoise + fixed2(_Speed * _Time.y, 0));
  				fixed2 distortion = UnpackNormal(noise).rg;
 
 				// reverse uvrefl
