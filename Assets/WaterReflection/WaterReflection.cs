@@ -17,7 +17,7 @@ public class WaterReflection : MonoBehaviour {
 		Vector3 size = water.bounds.size;
 		float aspect = size.x / size.y;
 		camera.aspect = aspect;
-		camera.orthographicSize = 2.28f;
+		camera.orthographicSize = size.y / 2f;
 		camera.targetTexture = offscreenTexture;
 	}
 	
