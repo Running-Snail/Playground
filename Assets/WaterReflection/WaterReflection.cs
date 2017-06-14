@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[ExecuteInEditMode]
 public class WaterReflection : MonoBehaviour {
 	public Renderer water;
 	public Camera camera;
@@ -22,7 +23,7 @@ public class WaterReflection : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		if (water != null && camera != null) {
-			water.material.SetTexture ("_ReflectionTex", offscreenTexture);
+			water.sharedMaterial.SetTexture ("_ReflectionTex", offscreenTexture);
 		}
 	}
 }
