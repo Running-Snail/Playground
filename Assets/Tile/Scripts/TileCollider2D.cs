@@ -15,61 +15,12 @@ public class TileCollider2D : MonoBehaviour {
 	void Start () {
 		poly = GetComponent<PolygonCollider2D>();
 		tilesBorder = GenerateBorderPoints(tiles).ToArray();
-
-		// check every point
-		List<Vector2> colliderBorder = new List<Vector2>();
-		foreach (Vector2 p in tilesBorder) {
-			Debug.Log(p);
-			bool inside = IsPointInside(tiles, p);
-			Debug.Log(inside);
-			if (!inside) {
-				colliderBorder.Add(p);
-			}
-		}
-
-		Debug.Log("---border---");
-
-		foreach (Vector2 p in colliderBorder) {
-			Debug.Log(p);
-		}
-
-		poly.points = colliderBorder.ToArray();
+        poly.points = RightAngleConvex(tilesBorder).ToArray();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		
-	}
-
-	private bool IsPointInside(Vector2[] tiles, Vector2 p) {
-		// 5 cases
-		Vector2 p0 = new Vector2(p.x - tileWidth, p.y);
-		Vector2 p1 = new Vector2(p.x, p.y);
-		Vector2 p2 = new Vector2(p.x - tileWidth, p.y - tileHeight);
-		Vector2 p3 = new Vector2(p.x, p.y - tileHeight);
-
-		bool contains0 = ContainsPoint(tiles, p0);
-		bool contains1 = ContainsPoint(tiles, p1);
-		bool contains2 = ContainsPoint(tiles, p2);
-		bool contains3 = ContainsPoint(tiles, p3);
-
-		Debug.Log("---IsPointInside---");
-		Debug.Log(p);
-		Debug.Log(p0 + ":" + contains0 + "," + p1 + ":" + contains1 + "," + p2 + ":" + contains2 + "," + p3 + ":" + contains3);
-
-		if (contains0 && contains1 && !contains2 && !contains3) {
-			return true;
-		} else if (contains0 && !contains1 && contains2 && !contains3) {
-			return true;
-		} else if (!contains0 && contains1 && !contains2 && contains3) {
-			return true;
-		} else if (!contains0 && !contains1 && contains2 && contains3) {
-			return true;
-		} else if (contains0 && contains1 && contains2 && contains3) {
-			return true;
-		}
-
-		return false;
 	}
 
 	private List<Vector2> GenerateBorderPoints(Vector2[] tiles) {
@@ -83,16 +34,59 @@ public class TileCollider2D : MonoBehaviour {
 		return result;
 	}
 
-	private bool ContainsPoint(Vector2[] points, Vector2 point) {
-		foreach (Vector2 p in points) {
-			if (IsSamePoint(p, point)) {
-				return true;
-			}
-		}
-		return false;
-	}
+    private int FindMinAngleIdx(Vector2[] points, int curIdx, Vector2 edge) {
+        int minAngleIdx = 0;
+        float minAngle = 360f;
+        Vector2 curPoint = points[curIdx];
+        Debug.Log("--------------" + points[curIdx]);
+        for (int i=0; i<points.Length; i++) {
+            if (i == curIdx) {
+                continue;
+            }
+            Vector2 p = points[i];
+            float c = Vector2.Angle(p - curPoint, edge);
 
-	private bool IsSamePoint(Vector2 a, Vector2 b) {
-		return Mathf.Approximately(a.x, b.x) && Mathf.Approximately(a.y, b.y);
-	}
+            // check is right angle
+            Debug.Log("point " + p + " angle " + c);
+            Debug.Log("check " + Mathf.Approximately(c, 0f) + "," + Mathf.Approximately(c, 90f) + "," + Mathf.Approximately(c, 180f));
+            if ((Mathf.Approximately(c, 0f) || Mathf.Approximately(c, 90f) || Mathf.Approximately(c, 180f)) && c < minAngle) {
+                minAngle = c;
+                minAngleIdx = i;
+            }
+        }
+        return minAngleIdx;
+    }
+
+    private int FindMinYIdx(Vector2[] points) {
+        int minYIdx = 0;
+        for (int i=1; i<points.Length; i++) {
+            if (points[i].y < points[minYIdx].y) {
+                minYIdx = i;
+            }
+        }
+        return minYIdx;
+    }
+
+    private List<Vector2> RightAngleConvex(Vector2[] points) {
+        List<Vector2> result = new List<Vector2>();
+        int startIdx = FindMinYIdx(points); // find point with min y value
+        int curIdx = startIdx;
+        Vector2 curEdge = Vector2.right;
+        result.Add(points[startIdx]);
+        while (true) {
+            int minAngleIdx = FindMinAngleIdx(points, curIdx, curEdge);
+            Debug.Log("min idx " + minAngleIdx + ":" + points[minAngleIdx]);
+
+            // end condition
+            if (minAngleIdx == startIdx) {
+                break;
+            }
+            curEdge = points[minAngleIdx] - points[curIdx];
+            curIdx = minAngleIdx;
+
+            // add to result set
+            result.Add(points[curIdx]);
+        }
+        return result;
+    }
 }
