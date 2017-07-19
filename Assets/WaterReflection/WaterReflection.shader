@@ -60,7 +60,7 @@
 			fixed4 frag (v2f i) : SV_Target
 			{
 				// perspective correction
-				i.uvnoise += fixed2(2.0f * (0.5 - i.uvnoise.x) * i.uvnoise.y, 0.0f);
+				// i.uvnoise += fixed2(2.0f * (0.5 - i.uvnoise.x) * i.uvnoise.y, 0.0f);
 				fixed4 noise = tex2D(_NoiseTex, i.uvnoise + fixed2(_Speed * _Time.y, 0));
  				fixed2 distortion = UnpackNormal(noise).rg;
 
