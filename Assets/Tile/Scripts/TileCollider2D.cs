@@ -2,91 +2,217 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+class ChunksWalker {
+    public static int DIRECTION_STAY = 0;
+    public static int DIRECTION_UP = 1;
+    public static int DIRECTION_RIGHT = 2;
+    public static int DIRECTION_DOWN = 3;
+    public static int DIRECTION_LEFT = 4;
+
+    public float tileWidth = 1f;
+    public float tileHeight = 1f;
+
+    private Vector2 mPos;
+    private Vector2[] mChunks;
+    private int mDirection;
+
+    public ChunksWalker(Vector2 pos, Vector2[] chunks) {
+        this.mPos = pos;
+        this.mChunks = chunks;
+    }
+
+    public static bool IsSamePoint(Vector2 a, Vector2 b) {
+        return Mathf.Approximately(a.x, b.x) && Mathf.Approximately(a.y, b.y);
+    }
+
+    private bool ApproximatelyIn(Vector2 aim, Vector2[] chunks) {
+        foreach (Vector2 point in chunks) {
+            if (IsSamePoint(aim, point)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int State() {
+        Vector2 pos0 = new Vector2(mPos.x - tileWidth, mPos.y);
+        Vector2 pos1 = mPos;
+        Vector2 pos2 = new Vector2(mPos.x - tileWidth, mPos.y - tileHeight);
+        Vector2 pos3 = new Vector2(mPos.x, mPos.y - tileHeight);
+        int bit0 = ApproximatelyIn(pos0, mChunks) ? 1 : 0;
+        int bit1 = ApproximatelyIn(pos1, mChunks) ? 1 << 1 : 0;
+        int bit2 = ApproximatelyIn(pos2, mChunks) ? 1 << 2 : 0;
+        int bit3 = ApproximatelyIn(pos3, mChunks) ? 1 << 3 : 0;
+        return bit0 | bit1 | bit2 | bit3;
+    }
+
+    public Vector2 Pos() {
+        return mPos;
+    }
+
+    public void Jump(float deltaX, float deltaY) {
+        mPos.x += deltaX;
+        mPos.y += deltaY;
+    }
+
+    public void WalkUp() {
+        mPos.y += tileHeight;
+        mDirection = DIRECTION_UP;
+    }
+
+    public void WalkDown() {
+        mPos.y -= tileHeight;
+        mDirection = DIRECTION_DOWN;
+    }
+
+    public void WalkRight() {
+        mPos.x += tileWidth;
+        mDirection = DIRECTION_RIGHT;
+    }
+
+    public void WalkLeft() {
+        mPos.x -= tileWidth;
+        mDirection = DIRECTION_LEFT;
+    }
+
+    public int Direction() {
+        return mDirection;
+    }
+}
+
+interface IConvexStateHandler {
+    void Handle(ChunksWalker walker, List<Vector2> convex);
+}
+
+class ConvexStartFinder : IConvexStateHandler {
+    public void Handle(ChunksWalker walker, List<Vector2> convex) {
+        int state = walker.State();
+        if (state == 15) {
+            walker.Jump(-walker.tileWidth, -walker.tileHeight);
+        } else if (walker.Direction() == ChunksWalker.DIRECTION_STAY) {
+            // start point
+            convex.Add(walker.Pos());
+            if (state == 1 || state == 5 || state == 13 || state == 9) {
+                walker.WalkUp();
+            } else if (state == 2 || state == 3 || state == 7 || state == 6) {
+                walker.WalkRight();
+            } else if (state == 8 || state == 10 || state == 11) {
+                walker.WalkDown();
+            } else if (state == 4 || state == 12 || state == 14) {
+                walker.WalkLeft();
+            }
+            convex.Add(walker.Pos());
+        }
+    }
+}
+
+class WalkingUp : IConvexStateHandler {
+    public void Handle(ChunksWalker walker, List<Vector2> convex) {
+        int direction = walker.Direction();
+        if (direction == ChunksWalker.DIRECTION_STAY) {
+            return;
+        }
+        int state = walker.State();
+        if (state == 1 || state == 5 || state == 13 || 
+            (direction == ChunksWalker.DIRECTION_RIGHT && state == 9)) {
+            walker.WalkUp();
+            convex.Add(walker.Pos());
+        }
+    }
+}
+
+class WalkingRight : IConvexStateHandler {
+    public void Handle(ChunksWalker walker, List<Vector2> convex) {
+        int direction = walker.Direction();
+        if (direction == ChunksWalker.DIRECTION_STAY) {
+            return;
+        }
+        int state = walker.State();
+        if (state == 2 || state == 3 || state == 7 ||
+            (direction == ChunksWalker.DIRECTION_DOWN && state == 6)) {
+            walker.WalkRight();
+            convex.Add(walker.Pos());
+        }
+    }
+}
+
+class WalkingDown : IConvexStateHandler {
+    public void Handle(ChunksWalker walker, List<Vector2> convex) {
+        int direction = walker.Direction();
+        if (direction == ChunksWalker.DIRECTION_STAY) {
+            return;
+        }
+        int state = walker.State();
+        if (state == 8 || state == 10 || state == 11 ||
+            (direction == ChunksWalker.DIRECTION_LEFT && state == 9)) {
+            walker.WalkDown();
+            convex.Add(walker.Pos());
+        }
+    }
+}
+
+class WalkingLeft : IConvexStateHandler{
+    public void Handle(ChunksWalker walker, List<Vector2> convex) {
+        int direction = walker.Direction();
+        if (direction == ChunksWalker.DIRECTION_STAY) {
+            return;
+        }
+        int state = walker.State();
+        if (state == 4 || state == 12 || state == 14 ||
+            (direction == ChunksWalker.DIRECTION_UP && state == 6)) {
+            walker.WalkLeft();
+            convex.Add(walker.Pos());
+        }
+    }
+}
+
 [RequireComponent(typeof(PolygonCollider2D))]
+[ExecuteInEditMode]
 public class TileCollider2D : MonoBehaviour {
 	public float tileWidth = 1.0f;
 	public float tileHeight = 1.0f;
-	public Vector2[] tiles;
+    public Vector2[] chunks;
 
-	private PolygonCollider2D poly;
-	private Vector2[] tilesBorder;
+    private IConvexStateHandler[] mHandlers;
+    private PolygonCollider2D mPoly;
 
-	// Use this for initialization
-	void Start () {
-		poly = GetComponent<PolygonCollider2D>();
-		tilesBorder = GenerateBorderPoints(tiles).ToArray();
-        poly.points = RightAngleConvex(tilesBorder).ToArray();
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
+    public void Awake() {
+        Debug.Log("[TileCollider2D.Awake]");
 
-	private List<Vector2> GenerateBorderPoints(Vector2[] tiles) {
-		List<Vector2> result = new List<Vector2>();
-		foreach (Vector2 p in tiles) {
-			result.Add(new Vector2(p.x, p.y));
-			result.Add(new Vector2(p.x + tileWidth, p.y));
-			result.Add(new Vector2(p.x + tileWidth, p.y + tileHeight));
-			result.Add(new Vector2(p.x, p.y + tileHeight));
-		}
-		return result;
-	}
+        List<IConvexStateHandler> handlers = new List<IConvexStateHandler>();
+        handlers.Add(new ConvexStartFinder());
+        handlers.Add(new WalkingUp());
+        handlers.Add(new WalkingRight());
+        handlers.Add(new WalkingDown());
+        handlers.Add(new WalkingLeft());
+        mHandlers = handlers.ToArray();
 
-    private int FindMinAngleIdx(Vector2[] points, int curIdx, Vector2 edge) {
-        int minAngleIdx = 0;
-        float minAngle = 360f;
-        Vector2 curPoint = points[curIdx];
-        Debug.Log("--------------" + points[curIdx]);
-        for (int i=0; i<points.Length; i++) {
-            if (i == curIdx) {
-                continue;
-            }
-            Vector2 p = points[i];
-            float c = Vector2.Angle(p - curPoint, edge);
-
-            // check is right angle
-            Debug.Log("point " + p + " angle " + c);
-            Debug.Log("check " + Mathf.Approximately(c, 0f) + "," + Mathf.Approximately(c, 90f) + "," + Mathf.Approximately(c, 180f));
-            if ((Mathf.Approximately(c, 0f) || Mathf.Approximately(c, 90f) || Mathf.Approximately(c, 180f)) && c < minAngle) {
-                minAngle = c;
-                minAngleIdx = i;
-            }
-        }
-        return minAngleIdx;
+        mPoly = GetComponent<PolygonCollider2D>();
     }
 
-    private int FindMinYIdx(Vector2[] points) {
-        int minYIdx = 0;
-        for (int i=1; i<points.Length; i++) {
-            if (points[i].y < points[minYIdx].y) {
-                minYIdx = i;
-            }
-        }
-        return minYIdx;
+    public void Start()
+    {
+        mPoly.SetPath(0, VerticalConvex(chunks));
     }
 
-    private List<Vector2> RightAngleConvex(Vector2[] points) {
-        List<Vector2> result = new List<Vector2>();
-        int startIdx = FindMinYIdx(points); // find point with min y value
-        int curIdx = startIdx;
-        Vector2 curEdge = Vector2.right;
-        result.Add(points[startIdx]);
+    private Vector2[] VerticalConvex(Vector2[] chunks) {
+        List<Vector2> convex = new List<Vector2>();
+        if (chunks.Length <= 0) {
+            return convex.ToArray();
+        }
+        ChunksWalker walker = new ChunksWalker(chunks[0], chunks);
         while (true) {
-            int minAngleIdx = FindMinAngleIdx(points, curIdx, curEdge);
-            Debug.Log("min idx " + minAngleIdx + ":" + points[minAngleIdx]);
-
-            // end condition
-            if (minAngleIdx == startIdx) {
-                break;
+            foreach (IConvexStateHandler handler in mHandlers) {
+                handler.Handle(walker, convex);
             }
-            curEdge = points[minAngleIdx] - points[curIdx];
-            curIdx = minAngleIdx;
-
-            // add to result set
-            result.Add(points[curIdx]);
+            if (convex.Count > 0) {
+                Vector2 pos = walker.Pos();
+                Vector2 start = convex[0];
+                if (ChunksWalker.IsSamePoint(pos, start)) {
+                    break;
+                }
+            }
         }
-        return result;
+        return convex.ToArray();
     }
 }
