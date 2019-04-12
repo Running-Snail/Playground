@@ -1,4 +1,5 @@
 # Unity Playground
 Anything interesting will be tested here.
 
-Unity 5.6.0f3
+Unity 2018.3.12f1
+
